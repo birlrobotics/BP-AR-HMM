@@ -4,9 +4,7 @@ HongminWu -- Additions:
 1. This is based on software originally written by Emily Fox and Erik Sudderth (see below) and adapted for use in an LfD setting.
 2. The main script to run is demos/*_demo.m, please change the correct path in the 'global_variables' file
 
-===========================================================================
-BP-AR-HMM (beta process autoregressive hidden Markov model) Matlab Software
-===========================================================================
+# BP-AR-HMM (beta process autoregressive hidden Markov model) Matlab Software
 
 Copyright (C) 2009, Emily B. Fox and Erik B. Sudderth.
 (ebfox[at]alum[dot]mit[dot]edu and sudderth[at]cs[dot]brown[dot]edu)
@@ -24,9 +22,7 @@ See also:
   E. B. Fox
   Ph.D. Thesis, July, 2009.
 
-========================================================================
-Package Organization and Documentation
-========================================================================
+# Package Organization and Documentation
 
 Summary of BP-AR-HMM package contents:
 
@@ -40,9 +36,7 @@ IBPHMMinference_PoissonProp.m:
 /relabeler:  
   Code to perform optimal mapping between true and estimated mode sequences.
 
-========================================================================
-Setup and Usage Examples
-========================================================================
+# Setup and Usage Examples
 
 For an example of sparse feature extraction, see runstuff.m.
 To use the BP-AR-HMM code, you must first take two steps:
@@ -50,17 +44,11 @@ To use the BP-AR-HMM code, you must first take two steps:
 	http://research.microsoft.com/~minka/software/lightspeed/
 2) Add /relabeler and /utilities directory to path
 
-========================================================================
-Acknowledgments
-========================================================================
+# Acknowledgments & Copyright & License
 
 Portions of the package were adapted from Yee Whye Teh's
 "Nonparametric Bayesian Mixture Models" package, release 1.
 Available from:  http://www.gatsby.ucl.ac.uk/~ywteh
-
-========================================================================
-Copyright & License
-========================================================================
 
 Copyright (C) 2009, Emily B. Fox and Erik B. Sudderth.
 
