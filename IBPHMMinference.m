@@ -14,9 +14,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-function [stateSeq Ustats F theta loglike] = IBPHMMinference(data_struct,model,settings)
-
-trial = settings.trial;
+function [data_struct stateSeq Ustats F dist_struct theta loglike] = IBPHMMinference(data_struct,model,settings,trial)
+settings.trial = trial;
 if ~isfield(settings,'saveMin')
     settings.saveMin = 1;
 end
@@ -30,8 +29,8 @@ display(strcat('Trial:',num2str(trial)))
 
 if settings.ploton
     H1 = figure;
-%   H2 = figure;
-   % A2 = gca();
+%     H2 = figure;
+%     A2 = gca();
 end
 
 obsModel = model.obsModel;  % structure containing the observation model parameters
@@ -55,10 +54,10 @@ else
     F = ones(numObj,20); % the maximum number skills is 20
 end
 
-%if settings.ploton
-%    imagesc(F,'Parent',A2); title(A2,['Featuer Matrix, Iter: 1']);
+% if settings.ploton
+%    imagesc(F,'Parent',A2); title(A2,'Featuer Matrix, Iter: 1');
 %    drawnow;
-%end
+% end
 
 % Build initial structures for parameters and sufficient statistics:
 [theta Ustats stateCounts data_struct model S] = initializeStructs(F,model,data_struct,settings);
@@ -88,6 +87,8 @@ end
 if ~exist(settings.saveDir,'file')
     mkdir(settings.saveDir);
 end
+cd (settings.saveDir);
+delete *;
 
 % Save initial statistics and settings for this trial:
 if isfield(settings,'filename')
@@ -100,21 +101,21 @@ end
 save(settings_filename,'data_struct','settings','model') % save current statistics
 save(init_stats_filename,'dist_struct','theta','hyperparams') % save current statistics
     
-
-total_length = 0;
-length_ii = zeros(1,length(data_struct));
-for ii=1:length(data_struct)
-    length_ii(ii) = length(data_struct(ii).true_labels);
-    total_length = total_length + length_ii(ii);
+if isfield(data_struct,'true_labels') 
+    total_length = 0;
+    length_ii = zeros(1,length(data_struct));
+    for ii=1:length(data_struct)
+        length_ii(ii) = length(data_struct(ii).true_labels);
+        total_length = total_length + length_ii(ii);
+    end
+    cummlength = cumsum(length_ii); %Cumulative sum of elements
+    z_tot = zeros(1,cummlength(end));
+    true_labels_tot = zeros(1,cummlength(end));
+    true_labels_tot(1:length_ii(1)) = data_struct(1).true_labels;
+    for ii=2:length(data_struct) 
+        true_labels_tot(cummlength(ii-1)+1:cummlength(ii)) = data_struct(ii).true_labels; % argument by given true_labels
+    end
 end
-cummlength = cumsum(length_ii); %Cumulative sum of elements
-z_tot = zeros(1,cummlength(end));
-true_labels_tot = zeros(1,cummlength(end));
-true_labels_tot(1:length_ii(1)) = data_struct(1).true_labels;
-for ii=2:length(data_struct) 
-    true_labels_tot(cummlength(ii-1)+1:cummlength(ii)) = data_struct(ii).true_labels; % argument by given true_labels
-end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%                   Run Sampler                            %%%
@@ -124,10 +125,12 @@ num_accept = zeros(Niter,2);
 num_prop = zeros(Niter,2);
 
 for n=1:Niter
-    DISP = [num2str(trial), '-Gibbs Sampling:', num2str(n), '/', num2str(Niter)];
-    disp(DISP);
     
     [F dist_struct theta config_log_likelihood num_accept(n,:) num_prop(n,:)] = sample_features(F,hyperparams.gamma0,data_struct,dist_struct,theta,obsModel);
+    
+   if rem(n, 20)==0
+       disp(strcat(num2str(trial),'/',num2str(settings.nTrial),'-',char(settings.STATE),'-Gibbs_Sampling:', num2str(n), '/', num2str(Niter),'-log:',num2str(config_log_likelihood)));
+   end
     
     % Sample z and s sequences given data, transition distributions,
     % HMM-state-specific mixture weights, and emission parameters:
@@ -148,17 +151,13 @@ for n=1:Niter
     [hyperparams] = sample_IBPparam(F,hyperparams,HMMhyperparams);
     
     % Resample Dirichlet concentration parameters: 
-    hyperparams = sample_distparams(F,dist_struct,hyperparams,HMMhyperparams,100);
+    hyperparams = sample_distparams(F,dist_struct,hyperparams,HMMhyperparams,50);
     
     % Build and save stats structure:
     S = store_stats(S,n,settings,F,config_log_likelihood,stateSeq,dist_struct,theta,hyperparams);
    
-%    figure(H2);
-%     scatter(n,config_log_likelihood,'filled');hold on;
-    
     % Plot stats:
-    if isfield(data_struct,'true_labels') & settings.ploton
-                
+    if isfield(data_struct,'true_labels') & settings.ploton       
         if rem(n,settings.plotEvery)==0
                         
             F_used = zeros(size(F)); % ndemos * (Ninit * ndemos)
@@ -176,11 +175,11 @@ for n=1:Niter
             
             F_used(1,unique(stateSeq(1).z)) = 1;
                     
-            %A1 = subplot(sub_x,sub_y,1,'Parent',H1);
             A1 = subplot(sub_x*sub_y,1,1,'Parent',H1); 
              
             %imagesc([relabeled_z(1:cummlength(1)); relabeled_true_labels(1:cummlength(1))],'Parent',A1,[1 max(union(relabeled_z,relabeled_true_labels))]); title(A1,['Iter: ' num2str(n)]);
-            imagesc([relabeled_z(1:cummlength(1))],'Parent',A1,[1 max(union(relabeled_z,relabeled_true_labels))]); title(A1,['Iter: ' num2str(n)]);
+            imagesc([relabeled_z(1:cummlength(1))],'Parent',A1,[1 max(union(relabeled_z,relabeled_true_labels))]); 
+            title(A1,['Iter: ' num2str(n)]);
             for ii=2:Nsets
                 F_used(ii,unique(stateSeq(ii).z)) = 1;
                 %A1 = subplot(sub_x,sub_y,ii,'Parent',H1);
@@ -190,15 +189,21 @@ for n=1:Niter
                 imagesc([relabeled_z(cummlength(ii-1)+1:cummlength(ii))],'Parent',A1,[1 max(union(relabeled_z,relabeled_true_labels))]) ;title(A1,['Iter: ' num2str(n)]); 
 
             end
+%             imagesc(F+F_used,'Parent',A2); title(A2,['Featuer Matrix, Iter: ' num2str(n)]);
             drawnow;
-            
-            %imagesc(F+F_used,'Parent',A2); title(A2,['Featuer Matrix, Iter: ' num2str(n)]);
-            %drawnow;
-            
+           
             if isfield(settings,'plotpause') && settings.plotpause
                 if isnan(settings.plotpause), waitforbuttonpress; else pause(settings.plotpause); end
             end
-   
+        end
+    elseif settings.ploton
+        Nsets = length(data_struct);
+        sub_x = floor(sqrt(Nsets));
+        sub_y = ceil(Nsets/sub_x);
+        A1 = subplot(sub_x*sub_y,1,1,'Parent',H1);
+        if max([stateSeq.z]) > 1
+            imagesc([stateSeq.z],'Parent',A1,[1 max([stateSeq.z])]); 
+            title(A1,['Without the true_ladels, Iter: ' num2str(n)]);
         end
     end
 end
