@@ -1,11 +1,8 @@
 
-Scott Niekum -- Additions:
+HongminWu -- Additions:
 
 1. This is based on software originally written by Emily Fox and Erik Sudderth (see below) and adapted for use in an LfD setting.
-2. The main script to run is utilities/test.m
-3. utilities/loadRobotLogs shows an example of how to load data. Basically,
- you want to create a struct that has the n-dimensional observations of each of your demonstrations.
-
+2. The main script to run is demos/*_demo.m, please change the correct path in the 'global_variables' file
 
 ===========================================================================
 BP-AR-HMM (beta process autoregressive hidden Markov model) Matlab Software
